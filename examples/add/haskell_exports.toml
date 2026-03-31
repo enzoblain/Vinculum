@@ -1,0 +1,7 @@
+[[function]]
+name = "add"
+args = [
+    { name = "a", type = "Int" },
+    { name = "b", type = "Int" }
+]
+return = "Int"
