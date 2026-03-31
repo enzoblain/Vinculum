@@ -10,7 +10,7 @@ pub fn main(args: TokenStream, item: TokenStream) -> TokenStream {
 
     let haskell_file = if !args.is_empty() {
         if let Ok(meta) = parse::<MetaNameValue>(args.clone()) {
-            if meta.path.is_ident("haskell_file") {
+            if meta.path.is_ident("haskell_directory") {
                 if let syn::Expr::Lit(ExprLit {
                     lit: Lit::Str(lit_str),
                     ..
