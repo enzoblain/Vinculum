@@ -1,4 +1,3 @@
-mod build;
-mod codegen;
-mod config;
-pub(crate) mod main;
+pub(crate) mod build;
+pub(crate) mod codegen;
+pub(crate) mod config;

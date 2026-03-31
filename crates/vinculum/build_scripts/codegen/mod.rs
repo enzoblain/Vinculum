@@ -1,2 +1,2 @@
-pub(super) mod dispatch;
-pub(super) mod functions;
+pub(crate) mod dispatch;
+pub(crate) mod functions;
