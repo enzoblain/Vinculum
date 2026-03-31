@@ -1,0 +1,36 @@
+[package]
+name = "vinculum-hs"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.93.0"
+
+description = "Seamless Haskell–Rust interoperability through automated FFI bindings and procedural macros."
+repository = "https://github.com/enzoblain/Vinculum"
+homepage = "https://github.com/enzoblain/Vinculum"
+documentation = "https://docs.rs/vinculum-hs"
+readme = "../../README.md"
+license-file = "../../LICENSE"
+keywords = ["haskell", "ffi", "interop", "bindings", "ghc"]
+categories = ["api-bindings", "development-tools::ffi"]
+
+include = [
+    "src/**/*",
+    "build_scripts/**/*",
+    "../../README.md",
+    "../../LICENSE",
+]
+
+[lib]
+name = "vinculum_hs"
+
+[dependencies]
+vinculum-hs-macros = { version = "0.1.0", path = "../vinculum-hs-macros" }
+
+[build-dependencies]
+
+[features]
+default = []
+
+[[example]]
+name = "add"
+path = "../../examples/add/main.rs"

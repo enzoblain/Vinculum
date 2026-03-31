@@ -59,18 +59,18 @@ pub fn main(args: TokenStream, item: TokenStream) -> TokenStream {
 
                 unsafe { std::env::set_var("HASKELL_DIR", full_dir); }
 
-                vinculum::runtime::init();
+                vinculum_hs::runtime::init();
                 #block
-                vinculum::runtime::shutdown();
+                vinculum_hs::runtime::shutdown();
             }
         }
     } else {
         quote! {
             #(#attrs)*
             #vis #sig {
-                vinculum::runtime::init();
+                vinculum_hs::runtime::init();
                 #block
-                vinculum::runtime::shutdown();
+                vinculum_hs::runtime::shutdown();
             }
         }
     };

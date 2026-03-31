@@ -1,5 +1,5 @@
 [package]
-name = "vinculum_macros"
+name = "vinculum-hs-macros"
 version.workspace = true
 edition.workspace = true
 

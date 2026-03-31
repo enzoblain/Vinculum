@@ -1,105 +1,187 @@
 # 🧵 Vinculum
 
-**Vinculum** is an experimental project exploring **high-performance interoperability between Haskell and Rust**, with a focus on **memory-mapped shared data** and clean FFI boundaries.
+**Seamless Haskell–Rust interoperability through automated FFI bindings and procedural macros.**
 
-The goal is to combine:
-- 🧠 **Haskell** for high-level abstractions, safety, and expressiveness
-- 🦀 **Rust** for low-level control, performance, and memory safety
+Write Haskell. Call it from Rust. Let Vinculum handle the rest.
 
-> *Vinculum* means “bond” or “link” in Latin — a fitting name for a project about connecting two strong ecosystems.
-
----
-
-## Motivation
-
-Haskell excels at correctness and abstraction, while Rust shines in systems programming and memory-safe low-level work.  
-This project investigates a pragmatic way to **bind the two languages together** without sacrificing their respective strengths.
-
-Key questions behind Vinculum:
-- How clean can a Haskell ↔ Rust boundary be?
-- Can `mmap` be used as a fast, shared communication layer?
-- What is the minimal, maintainable FFI surface?
-- How far can we push performance while keeping APIs ergonomic?
+[![Crates.io](https://img.shields.io/crates/v/vinculum-hs.svg)](https://crates.io/crates/vinculum-hs)
+[![Docs.rs](https://docs.rs/vinculum-hs/badge.svg)](https://docs.rs/vinculum-hs)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
 ---
 
-## High-Level Architecture
+## Overview
+
+Vinculum lets you call Haskell functions directly from Rust with full type safety — no manual FFI, no boilerplate. A
+single attribute macro sets up the runtime, and a build script generates the bindings automatically.
+
+> *Vinculum* — Latin for "bond" or "link."
+
+---
+
+## Features
+
+|                        |                                                               |
+|------------------------|---------------------------------------------------------------|
+| **Zero boilerplate**   | Bindings are generated automatically from your Haskell source |
+| **Type-safe**          | Generated wrappers enforce correctness at compile time        |
+| **Single macro**       | `#[vinculum::main]` handles runtime initialization            |
+| **Transparent builds** | Haskell compilation is orchestrated via Cargo                 |
+| **Minimal overhead**   | Direct FFI calls over the C ABI                               |
+
+---
+
+## Example
+
+Suppose you have a Haskell module with a few arithmetic functions:
+
+**`Math.hs`**
+
+```haskell
+module Math where
+
+-- Exported to Rust via Vinculum
+foreign export ccall math_add :: Int -> Int -> Int
+foreign export ccall math_multiply :: Int -> Int -> Int
+foreign export ccall math_factorial :: Int -> Int
+
+math_add :: Int -> Int -> Int
+math_add a b = a + b
+
+math_multiply :: Int -> Int -> Int
+math_multiply a b = a * b
+
+math_factorial :: Int -> Int
+math_factorial 0 = 1
+math_factorial n = n * math_factorial (n - 1)
+```
+
+Vinculum reads the module, generates type-safe Rust wrappers, and makes them available under
+`vinculum::functions::math`:
+
+**`main.rs`**
+
+```rust
+use vinculum::functions::math;
+
+#[vinculum::main(haskell_directory = "haskell/")]
+fn main() {
+    // Direct calls into Haskell — fully type-checked at compile time
+    let sum = math::add(12, 30);        // 42
+    let product = math::multiply(6, 7);     // 42
+    let fact = math::factorial(10);      // 3628800
+
+    println!("add(12, 30)      = {sum}");
+    println!("multiply(6, 7)   = {product}");
+    println!("factorial(10)    = {fact}");
+}
+```
+
+**Output:**
 
 ```
-Haskell (API, abstractions)
-        ^
-        |  FFI (C ABI)
-        v
-Rust (mmap, memory management, performance)
+add(12, 30)      = 42
+multiply(6, 7)   = 42
+factorial(10)    = 3628800
 ```
 
-- **Rust** exposes a stable C ABI (`cdylib` or `staticlib`)
-- **Haskell** provides a safe, idiomatic wrapper around it
-- Communication is **bi-directional**: Haskell can call Rust, and Rust can call back into Haskell when needed
+No `unsafe` blocks. No manual `extern "C"` declarations. No FFI plumbing.
 
 ---
 
-## Repository Structure
+## How it works
+
+```
+┌──────────────────────────────┐
+│  Rust application            │
+│  math::add(12, 30)           │  ← type-safe generated wrapper
+└──────────────┬───────────────┘
+               │
+       ┌───────▼────────┐
+       │   Vinculum     │  ← code generation + runtime lifecycle
+       └───────┬────────┘
+               │  C ABI / FFI
+       ┌───────▼────────┐
+       │ Haskell runtime│  ← GHC-compiled shared library
+       │ math_add(a, b) │
+       └────────────────┘
+```
+
+1. **Build time** — the build script compiles your Haskell module with GHC and generates Rust binding code.
+2. **Compile time** — generated wrappers are included via `functions.rs`; the type system enforces correct usage.
+3. **Runtime** — `#[vinculum::main]` initializes and tears down the Haskell RTS transparently.
+
+---
+
+## Getting started
+
+### Requirements
+
+- Rust 1.56+
+- GHC 9.0+ with Cabal
+- Linux or macOS
+
+### Installation
+
+```toml
+[dependencies]
+vinculum-hs = "*"
+```
+
+### Run the example
+
+```bash
+git clone https://github.com/enzoblain/Vinculum
+cd Vinculum
+cargo run --example math
+```
+
+---
+
+## Project structure
 
 ```
 vinculum/
-├── rust/        # Rust library (mmap, low-level logic)
-│   ├── Cargo.toml
-│   └── src/
-│
-├── haskell/     # Haskell library (FFI + high-level API)
-│   ├── vinculum.cabal
-│   └── src/
-│
-├── include/     # C headers (if needed)
-├── README.md
-└── .gitignore
+├── crates/
+│   ├── vinculum/               # Core framework
+│   │   ├── src/
+│   │   │   ├── lib.rs          # Public API
+│   │   │   ├── functions.rs    # Auto-generated bindings
+│   │   │   ├── runtime.rs      # Haskell RTS management
+│   │   │   └── ffi/            # FFI layer
+│   │   └── build_scripts/      # Build orchestration
+│   └── vinculum-macros/        # #[vinculum::main] macro
+├── examples/
+│   └── math/
+│       ├── main.rs
+│       └── Math.hs
+└── Cargo.toml
 ```
 
 ---
 
-## Current Status
+## Roadmap
 
-🚧 **Work in progress / experimental**
-
-Planned milestones:
-- [ ] Minimal Rust `mmap` API
-- [ ] Haskell FFI bindings
-- [ ] Safe resource management (`ForeignPtr`, `bracket`)
-- [ ] Benchmarks
-- [ ] Documentation & examples
-
----
-
-## Non-Goals
-
-- Not a general IPC framework
-- Not a replacement for existing Haskell FFI tools
-- Not production-ready (yet)
-
-This project is primarily **exploratory and educational**, though it aims to stay realistic and well-engineered.
+- [x] Automatic binding generation from Haskell modules
+- [x] `#[vinculum::main]` procedural macro
+- [x] Type-safe FFI wrappers
+- [x] Cargo-driven build orchestration
+- [ ] Haskell library support — declare Hackage dependencies in `Cargo.toml` and let Vinculum resolve and link them
+  automatically
+- [ ] Richer Haskell type support (`Maybe`, `Either`, `String`, …)
+- [ ] Async / concurrent interoperability
+- [ ] Advanced error propagation across the FFI boundary
+- [ ] Extended examples and benchmarks
 
 ---
 
-## Requirements
+## Contributing
 
-- **GHC** (modern version)
-- **Cabal**
-- **Rust** (stable)
-- Unix-like OS recommended (Linux/macOS)
+Contributions are welcome. Areas of interest: type marshalling, error handling, performance, documentation, and test
+infrastructure.
 
 ---
 
-## Philosophy
+## License
 
-- Minimal interfaces
-- Explicit ownership
-- Clear separation of concerns
-- No magic
-- Performance where it matters
-
----
-
-## Licensing
-
-This project is licensed under the MIT License.
+MIT — see [LICENSE](LICENSE).
