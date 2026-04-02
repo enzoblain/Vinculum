@@ -3,11 +3,10 @@ use std::path::Path;
 
 mod build_scripts;
 
-use build_scripts::build::config::load_config;
 use build_scripts::build::{compiler, linker, validator};
 use build_scripts::codegen::{generate_functions_with_modules, generate_haskell_dispatch};
-
-use crate::build_scripts::helpers::{
+use build_scripts::utils::config::load_config;
+use build_scripts::utils::helpers::{
     collect_file_modules, emit_rerun_if_changed, generate_user_functions_module,
     log_registered_functions,
 };

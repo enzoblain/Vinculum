@@ -1,8 +1,8 @@
 use std::env;
 use std::path::Path;
 
+use super::errors::ConfigLoadError;
 use crate::build_scripts::build::compiler::{find_rts_dir, find_rts_lib};
-use crate::build_scripts::build::errors::ConfigLoadError;
 
 #[derive(Clone)]
 pub struct BuildConfig {

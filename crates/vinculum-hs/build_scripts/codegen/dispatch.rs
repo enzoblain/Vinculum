@@ -2,7 +2,7 @@ use std::fs;
 use std::path::Path;
 
 use crate::build_scripts::parser::Function;
-use crate::build_scripts::utils::to_snake_case;
+use crate::build_scripts::utils::helpers::to_snake_case;
 
 pub(crate) fn generate_haskell_dispatch(
     file_modules: &[(String, Vec<Function>)],

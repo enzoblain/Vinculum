@@ -2,7 +2,7 @@ use std::path::PathBuf;
 use std::{env, fs};
 
 use crate::build_scripts::parser::Function;
-use crate::build_scripts::utils::to_snake_case;
+use crate::build_scripts::utils::helpers::to_snake_case;
 
 pub(crate) fn generate_functions_with_modules(file_modules: &[(String, Vec<Function>)]) {
     let manifest_dir =
