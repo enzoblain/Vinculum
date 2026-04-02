@@ -3,6 +3,7 @@ use std::{env, fs};
 
 use crate::build_scripts::parser::Function;
 use crate::build_scripts::utils::to_snake_case;
+
 pub(crate) fn generate_functions_with_modules(file_modules: &[(String, Vec<Function>)]) {
     let manifest_dir =
         PathBuf::from(env::var("CARGO_MANIFEST_DIR").expect("CARGO_MANIFEST_DIR is not set"));
