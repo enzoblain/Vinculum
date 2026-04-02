@@ -1,175 +1,9 @@
+use std::convert::TryFrom;
+
 use crate::ffi::errors::FfiError;
 use crate::ffi::value::Value;
 
 impl Value {
-    #[allow(dead_code)]
-    pub(crate) fn try_into_int8(self) -> Result<i8, FfiError> {
-        match self {
-            Value::Int8(value) => Ok(value),
-            _ => Err(FfiError::DecodeError),
-        }
-    }
-
-    #[allow(dead_code)]
-    pub(crate) fn into_int8(self) -> i8 {
-        self.try_into_int8()
-            .expect("internal FFI type error: expected Value::Int8")
-    }
-
-    #[allow(dead_code)]
-    pub(crate) fn try_into_int16(self) -> Result<i16, FfiError> {
-        match self {
-            Value::Int16(value) => Ok(value),
-            _ => Err(FfiError::DecodeError),
-        }
-    }
-
-    #[allow(dead_code)]
-    pub(crate) fn into_int16(self) -> i16 {
-        self.try_into_int16()
-            .expect("internal FFI type error: expected Value::Int16")
-    }
-
-    #[allow(dead_code)]
-    pub(crate) fn try_into_int32(self) -> Result<i32, FfiError> {
-        match self {
-            Value::Int32(value) => Ok(value),
-            _ => Err(FfiError::DecodeError),
-        }
-    }
-
-    #[allow(dead_code)]
-    pub(crate) fn into_int32(self) -> i32 {
-        self.try_into_int32()
-            .expect("internal FFI type error: expected Value::Int32")
-    }
-
-    #[allow(dead_code)]
-    pub(crate) fn try_into_int64(self) -> Result<i64, FfiError> {
-        match self {
-            Value::Int64(value) => Ok(value),
-            _ => Err(FfiError::DecodeError),
-        }
-    }
-
-    #[allow(dead_code)]
-    pub(crate) fn into_int64(self) -> i64 {
-        self.try_into_int64()
-            .expect("internal FFI type error: expected Value::Int64")
-    }
-
-    #[allow(dead_code)]
-    pub(crate) fn try_into_word8(self) -> Result<u8, FfiError> {
-        match self {
-            Value::Word8(value) => Ok(value),
-            _ => Err(FfiError::DecodeError),
-        }
-    }
-
-    #[allow(dead_code)]
-    pub(crate) fn into_word8(self) -> u8 {
-        self.try_into_word8()
-            .expect("internal FFI type error: expected Value::Word8")
-    }
-
-    #[allow(dead_code)]
-    pub(crate) fn try_into_word16(self) -> Result<u16, FfiError> {
-        match self {
-            Value::Word16(value) => Ok(value),
-            _ => Err(FfiError::DecodeError),
-        }
-    }
-
-    #[allow(dead_code)]
-    pub(crate) fn into_word16(self) -> u16 {
-        self.try_into_word16()
-            .expect("internal FFI type error: expected Value::Word16")
-    }
-
-    #[allow(dead_code)]
-    pub(crate) fn try_into_word32(self) -> Result<u32, FfiError> {
-        match self {
-            Value::Word32(value) => Ok(value),
-            _ => Err(FfiError::DecodeError),
-        }
-    }
-
-    #[allow(dead_code)]
-    pub(crate) fn into_word32(self) -> u32 {
-        self.try_into_word32()
-            .expect("internal FFI type error: expected Value::Word32")
-    }
-
-    #[allow(dead_code)]
-    pub(crate) fn try_into_word64(self) -> Result<u64, FfiError> {
-        match self {
-            Value::Word64(value) => Ok(value),
-            _ => Err(FfiError::DecodeError),
-        }
-    }
-
-    #[allow(dead_code)]
-    pub(crate) fn into_word64(self) -> u64 {
-        self.try_into_word64()
-            .expect("internal FFI type error: expected Value::Word64")
-    }
-
-    #[allow(dead_code)]
-    pub(crate) fn try_into_float32(self) -> Result<f32, FfiError> {
-        match self {
-            Value::Float32(value) => Ok(value),
-            _ => Err(FfiError::DecodeError),
-        }
-    }
-
-    #[allow(dead_code)]
-    pub(crate) fn into_float32(self) -> f32 {
-        self.try_into_float32()
-            .expect("internal FFI type error: expected Value::Float32")
-    }
-
-    #[allow(dead_code)]
-    pub(crate) fn try_into_float64(self) -> Result<f64, FfiError> {
-        match self {
-            Value::Float64(value) => Ok(value),
-            _ => Err(FfiError::DecodeError),
-        }
-    }
-
-    #[allow(dead_code)]
-    pub(crate) fn into_float64(self) -> f64 {
-        self.try_into_float64()
-            .expect("internal FFI type error: expected Value::Float64")
-    }
-
-    #[allow(dead_code)]
-    pub(crate) fn try_into_bool(self) -> Result<bool, FfiError> {
-        match self {
-            Value::Bool(value) => Ok(value),
-            _ => Err(FfiError::DecodeError),
-        }
-    }
-
-    #[allow(dead_code)]
-    pub(crate) fn into_bool(self) -> bool {
-        self.try_into_bool()
-            .expect("internal FFI type error: expected Value::Bool")
-    }
-
-    #[allow(dead_code)]
-    pub(crate) fn try_into_char(self) -> Result<char, FfiError> {
-        match self {
-            Value::Char(value) => Ok(value),
-            _ => Err(FfiError::DecodeError),
-        }
-    }
-
-    #[allow(dead_code)]
-    pub(crate) fn into_char(self) -> char {
-        self.try_into_char()
-            .expect("internal FFI type error: expected Value::Char")
-    }
-
     pub(crate) fn to_bytes(&self) -> Vec<u8> {
         let mut buf = Vec::new();
 
@@ -353,3 +187,31 @@ impl Value {
         }
     }
 }
+
+macro_rules! impl_try_from_value {
+    ($target:ty, $variant:ident) => {
+        impl TryFrom<Value> for $target {
+            type Error = FfiError;
+
+            fn try_from(value: Value) -> Result<Self, Self::Error> {
+                match value {
+                    Value::$variant(x) => Ok(x),
+                    _ => Err(FfiError::DecodeError),
+                }
+            }
+        }
+    };
+}
+
+impl_try_from_value!(i8, Int8);
+impl_try_from_value!(i16, Int16);
+impl_try_from_value!(i32, Int32);
+impl_try_from_value!(i64, Int64);
+impl_try_from_value!(u8, Word8);
+impl_try_from_value!(u16, Word16);
+impl_try_from_value!(u32, Word32);
+impl_try_from_value!(u64, Word64);
+impl_try_from_value!(f32, Float32);
+impl_try_from_value!(f64, Float64);
+impl_try_from_value!(bool, Bool);
+impl_try_from_value!(char, Char);

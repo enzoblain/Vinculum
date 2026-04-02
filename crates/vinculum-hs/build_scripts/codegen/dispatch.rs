@@ -41,7 +41,7 @@ fn generate_dispatch_branch(function: &Function, module_name: &str) -> String {
     let args_pattern = function
         .args
         .iter()
-        .map(|arg| arg.r#type.haskell_pattern(&arg.name))
+        .map(|arg| format!("V{} {}", arg.r#type.haskell_name(), &arg.name))
         .collect::<Vec<_>>()
         .join(", ");
 
@@ -61,7 +61,7 @@ fn generate_dispatch_branch(function: &Function, module_name: &str) -> String {
     };
 
     let converted_result = function.r#return.from_haskell_value(&function_call);
-    let encoder = function.r#return.haskell_encode_fn();
+    let encoder = format!("encode{}", function.r#return.haskell_name());
 
     format!(
         concat!(

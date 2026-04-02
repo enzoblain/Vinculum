@@ -79,11 +79,6 @@ impl HaskellType {
         format!("Value::{}({})", self.haskell_name(), name)
     }
 
-    #[allow(clippy::wrong_self_convention)]
-    pub(crate) fn from_rust_value(&self) -> String {
-        format!("result.into_{}()", self.haskell_name().to_lowercase())
-    }
-
     pub(crate) fn to_haskell_value(&self, name: &str) -> String {
         match self {
             HaskellType::I8
@@ -111,13 +106,5 @@ impl HaskellType {
             | HaskellType::U64 => format!("(fromIntegral ({}))", name),
             _ => name.to_string(),
         }
-    }
-
-    pub(crate) fn haskell_pattern(&self, name: &str) -> String {
-        format!("V{} {}", self.haskell_name(), name)
-    }
-
-    pub(crate) fn haskell_encode_fn(&self) -> String {
-        format!("encode{}", self.haskell_name())
     }
 }

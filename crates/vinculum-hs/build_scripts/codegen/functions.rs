@@ -49,7 +49,6 @@ fn generate_function(function: &Function, module_name: &str) -> String {
         .join(", ");
 
     let return_type = function.r#return.rust_name();
-    let result_conversion = function.r#return.from_rust_value();
     let qualified_name = format!("{}_{}", to_snake_case(module_name), function.name);
     let description_comments = function
         .description
@@ -61,8 +60,8 @@ fn generate_function(function: &Function, module_name: &str) -> String {
     format!(
         "{}#[allow(non_snake_case, unused_variables, unused_qualifications, dead_code)]
 pub fn {name}({args_sig}) -> {return_type} {{
-    let result = call_haskell_typed(\"{qualified_name}\", &[{args_values}]);
-    {result_conversion}
+    call_haskell_typed(\"{qualified_name}\", &[{args_values}])
+        .try_into().expect(\"internal FFI type error: invalid return type\")
 }}",
         if description_comments.is_empty() {
             String::new()
@@ -74,6 +73,5 @@ pub fn {name}({args_sig}) -> {return_type} {{
         return_type = return_type,
         qualified_name = qualified_name,
         args_values = args_values,
-        result_conversion = result_conversion,
     )
 }
