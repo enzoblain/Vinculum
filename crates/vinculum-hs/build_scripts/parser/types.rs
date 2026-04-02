@@ -114,36 +114,10 @@ impl HaskellType {
     }
 
     pub(crate) fn haskell_pattern(&self, name: &str) -> String {
-        match self {
-            HaskellType::I8 => format!("VInt8 {}", name),
-            HaskellType::I16 => format!("VInt16 {}", name),
-            HaskellType::I32 => format!("VInt32 {}", name),
-            HaskellType::I64 => format!("VInt64 {}", name),
-            HaskellType::U8 => format!("VWord8 {}", name),
-            HaskellType::U16 => format!("VWord16 {}", name),
-            HaskellType::U32 => format!("VWord32 {}", name),
-            HaskellType::U64 => format!("VWord64 {}", name),
-            HaskellType::F32 => format!("VFloat32 {}", name),
-            HaskellType::F64 => format!("VFloat64 {}", name),
-            HaskellType::Bool => format!("VBool {}", name),
-            HaskellType::Char => format!("VChar {}", name),
-        }
+        format!("V{} {}", self.haskell_name(), name)
     }
 
-    pub(crate) fn haskell_encode_fn(&self) -> &'static str {
-        match self {
-            HaskellType::I8 => "encodeInt8",
-            HaskellType::I16 => "encodeInt16",
-            HaskellType::I32 => "encodeInt32",
-            HaskellType::I64 => "encodeInt64",
-            HaskellType::U8 => "encodeWord8",
-            HaskellType::U16 => "encodeWord16",
-            HaskellType::U32 => "encodeWord32",
-            HaskellType::U64 => "encodeWord64",
-            HaskellType::F32 => "encodeFloat32",
-            HaskellType::F64 => "encodeFloat64",
-            HaskellType::Bool => "encodeBool",
-            HaskellType::Char => "encodeChar",
-        }
+    pub(crate) fn haskell_encode_fn(&self) -> String {
+        format!("encode{}", self.haskell_name())
     }
 }
