@@ -1,7 +1,7 @@
 use std::fs;
 use std::path::Path;
 
-use crate::build_scripts::parser::{extract_functions, Function};
+use crate::build_scripts::parser::{Function, extract_functions};
 
 pub(crate) fn collect_file_modules(
     src_dir: &Path,
@@ -67,17 +67,6 @@ pub(crate) fn generate_user_functions_module(file_modules: &[(String, Vec<Functi
         imports.join("\n"),
         wrappers.join("\n"),
     )
-}
-
-pub(crate) fn log_registered_functions(file_modules: &[(String, Vec<Function>)]) {
-    for (module_name, functions) in file_modules {
-        for function in functions {
-            println!(
-                "cargo:warning=Registered Haskell function: {} from module {module_name}",
-                function.name
-            );
-        }
-    }
 }
 
 pub fn capitalize_first(s: &str) -> String {

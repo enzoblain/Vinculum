@@ -1,4 +1,4 @@
-use vinculum_hs::functions::math::{add, factorial, multiply, testfn, testsum, testtuplegeneric};
+use vinculum_hs::functions::math::{add, factorial, multiply, testfn, teststring, testsum, testtuplegeneric};
 
 #[vinculum_hs::main]
 fn main() {
@@ -16,5 +16,6 @@ fn main() {
 
     println!("{}", testfn(4));
     println!("{}", testsum((5, 3)));
+    println!("{}", teststring(String::from("Vinculum")));
     println!("{}", testtuplegeneric((1, 2, 3, 4)));
 }

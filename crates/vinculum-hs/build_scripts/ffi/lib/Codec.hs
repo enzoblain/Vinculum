@@ -1,6 +1,7 @@
 module Codec where
 
 import qualified Data.ByteString as BS
+import qualified Data.ByteString.Char8 as C8
 import Data.Word
 import Data.Int
 import Data.Bits
@@ -19,6 +20,7 @@ data Value
     | VFloat64 Double
     | VBool Bool
     | VChar Char
+    | VString String
     | VTuple [Value]
 
 decodeValues :: BS.ByteString -> [Value]
@@ -86,6 +88,12 @@ decodeOne bs =
                         c -> (VChar c, remaining)
 
             | tag == 12 ->
+                let (payload, remaining) = BS.splitAt 8 rest
+                    len = fromIntegral (bytesToWord64 payload)
+                    (strPayload, strRemaining) = BS.splitAt len remaining
+                 in (VString (C8.unpack strPayload), strRemaining)
+
+            | tag == 13 ->
                 case BS.uncons rest of
                     Nothing -> error "Invalid Tuple encoding"
                     Just (len, payload) ->
@@ -150,6 +158,13 @@ encodeChar :: Char -> BS.ByteString
 encodeChar c =
     BS.pack (11 : word32ToBytes (fromIntegral (fromEnum c)))
 
+encodeString :: String -> BS.ByteString
+encodeString s =
+    let payload = C8.pack s
+    in BS.pack (12 : word64ToBytes (fromIntegral (BS.length payload)))
+            `BS.append`
+            payload
+
 encodeValue :: Value -> BS.ByteString
 encodeValue val = case val of
     VInt8 x -> encodeInt8 x
@@ -164,11 +179,12 @@ encodeValue val = case val of
     VFloat64 x -> encodeFloat64 x
     VBool b -> encodeBool b
     VChar c -> encodeChar c
+    VString s -> encodeString s
     VTuple values ->
         if length values > 255
             then error "Tuple too large to encode"
             else
-                BS.pack (12 : word8ToBytes (fromIntegral (length values)))
+                BS.pack (13 : word8ToBytes (fromIntegral (length values)))
                     `BS.append`
                     BS.concat (map encodeValue values)
 

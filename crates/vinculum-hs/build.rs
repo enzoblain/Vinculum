@@ -9,9 +9,7 @@ mod build_scripts;
 use build_scripts::build::{compiler, linker, validator};
 use build_scripts::codegen::{generate_functions_with_modules, generate_haskell_dispatch};
 use build_scripts::utils::config::load_config;
-use build_scripts::utils::helpers::{
-    collect_file_modules, generate_user_functions_module, log_registered_functions,
-};
+use build_scripts::utils::helpers::{collect_file_modules, generate_user_functions_module};
 
 fn main() {
     let config =
@@ -88,7 +86,6 @@ fn main() {
             fingerprint_path.display()
         )
     });
-    log_registered_functions(&file_modules);
 }
 
 fn fingerprint_inputs(

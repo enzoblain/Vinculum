@@ -21,3 +21,6 @@ testsum (a, b) = a + b
 
 testtuplegeneric :: (a, a, a, a) -> a
 testtuplegeneric (x, _, _, _) = x
+
+teststring :: String -> String
+teststring name = "Hello, " ++ name

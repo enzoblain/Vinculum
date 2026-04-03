@@ -15,6 +15,7 @@ pub(crate) enum Value<T> {
 
     Bool(bool),
     Char(char),
+    String(String),
 
     Generic(T),
     Tuple(Vec<Value<T>>),
@@ -31,4 +32,4 @@ macro_rules! impl_accepted_types {
     };
 }
 
-impl_accepted_types!(i8, i16, i32, i64, u8, u16, u32, u64, f32, f64, bool, char);
+impl_accepted_types!(i8, i16, i32, i64, u8, u16, u32, u64, f32, f64, bool, char, String);

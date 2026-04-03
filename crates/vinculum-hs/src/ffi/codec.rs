@@ -58,6 +58,20 @@ impl<T: 'static> Value<T> {
                 let code = *c as u32;
                 buf.extend_from_slice(&code.to_le_bytes());
             }
+            Value::String(s) => {
+                buf.push(12);
+                let payload = s.as_bytes();
+                buf.extend_from_slice(&(payload.len() as u64).to_le_bytes());
+                buf.extend_from_slice(payload);
+            }
+            Value::Tuple(t) => {
+                buf.push(13);
+                buf.push(t.len() as u8);
+
+                for v in t {
+                    buf.extend_from_slice(&v.to_bytes());
+                }
+            }
             Value::Generic(g) => {
                 let g = g as &dyn Any;
 
@@ -73,14 +87,8 @@ impl<T: 'static> Value<T> {
                     buf = Value::<()>::Bool(*x).to_bytes();
                 } else if let Some(x) = g.downcast_ref::<char>() {
                     buf = Value::<()>::Char(*x).to_bytes();
-                }
-            }
-            Value::Tuple(t) => {
-                buf.push(12);
-                buf.push(t.len() as u8);
-
-                for v in t {
-                    buf.extend_from_slice(&v.to_bytes());
+                } else if let Some(x) = g.downcast_ref::<String>() {
+                    buf = Value::<()>::String(x.clone()).to_bytes();
                 }
             }
         }
@@ -215,6 +223,24 @@ impl<T: 'static> Value<T> {
                     .ok_or(FfiError::InvalidChar(code))
             }
             12 => {
+                if bytes.len() < 9 {
+                    return Err(FfiError::UnexpectedEof);
+                }
+
+                let mut len_buf = [0u8; 8];
+                len_buf.copy_from_slice(&bytes[1..9]);
+                let len = u64::from_le_bytes(len_buf) as usize;
+
+                if bytes.len() < 9 + len {
+                    return Err(FfiError::UnexpectedEof);
+                }
+
+                let payload = &bytes[9..9 + len];
+                let string =
+                    String::from_utf8(payload.to_vec()).map_err(|_| FfiError::DecodeError)?;
+                Ok((Value::String(string), 9 + len))
+            }
+            13 => {
                 if bytes.len() < 2 {
                     return Err(FfiError::UnexpectedEof);
                 }
@@ -265,6 +291,7 @@ impl_try_from_value!(f32, Float32);
 impl_try_from_value!(f64, Float64);
 impl_try_from_value!(bool, Bool);
 impl_try_from_value!(char, Char);
+impl_try_from_value!(String, String);
 
 impl<T: 'static + AcceptedTypes> Value<T> {
     #[allow(unused)]
@@ -283,6 +310,7 @@ impl<T: 'static + AcceptedTypes> Value<T> {
             Value::Float64(x) => Box::new(x),
             Value::Bool(x) => Box::new(x),
             Value::Char(x) => Box::new(x),
+            Value::String(x) => Box::new(x),
             Value::Tuple(_) => return Err(FfiError::DecodeError),
         };
 

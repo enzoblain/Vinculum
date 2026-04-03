@@ -15,6 +15,7 @@ pub(crate) enum HaskellType {
     F64,
     Bool,
     Char,
+    String,
     Generic {
         name: String,
         rust_generic_name: String,
@@ -57,6 +58,7 @@ impl TryFrom<&str> for HaskellType {
             "Double" => Ok(Self::F64),
             "Bool" => Ok(Self::Bool),
             "Char" => Ok(Self::Char),
+            "String" => Ok(Self::String),
             _ => Err(ParseError::UnsupportedHaskellType(s.to_owned())),
         }
     }
@@ -77,6 +79,7 @@ impl HaskellType {
             HaskellType::F64 => "f64".to_string(),
             HaskellType::Bool => "bool".to_string(),
             HaskellType::Char => "char".to_string(),
+            HaskellType::String => "String".to_string(),
             HaskellType::Generic {
                 rust_generic_name, ..
             } => rust_generic_name.to_string(),
@@ -91,11 +94,7 @@ impl HaskellType {
         }
     }
 
-    pub(crate) fn to_rust_value(&self, name: &str) -> String {
-        self.to_rust_value_with_param(name, if self.is_generic() { "T" } else { "()" })
-    }
-
-    fn to_rust_value_with_param(&self, name: &str, type_param: &str) -> String {
+    pub(crate) fn to_rust_value_with_param(&self, name: &str, type_param: &str) -> String {
         match self {
             HaskellType::Tuple(types) => {
                 let values = types
@@ -108,7 +107,13 @@ impl HaskellType {
                 format!("Value::<{}>::Tuple(vec![{}])", type_param, values)
             }
             HaskellType::Generic { .. } => format!("Value::<{}>::Generic({})", type_param, name),
-            _ => format!("Value::<{}>::{}({})", type_param, self.value_variant_name(), name),
+            HaskellType::String => format!("Value::<{}>::String({})", type_param, name),
+            _ => format!(
+                "Value::<{}>::{}({})",
+                type_param,
+                self.value_variant_name(),
+                name
+            ),
         }
     }
 
@@ -124,6 +129,7 @@ impl HaskellType {
                     .join(", ");
                 format!("VTuple [{}]", items)
             }
+            HaskellType::String => format!("VString {}", name),
             _ => format!("V{} {}", self.value_variant_name(), name),
         }
     }
@@ -149,6 +155,7 @@ impl HaskellType {
                 format!("({})", items)
             }
 
+            HaskellType::String => name.to_string(),
             _ => name.to_string(),
         }
     }
@@ -167,6 +174,7 @@ impl HaskellType {
 
             HaskellType::Tuple(_) => name.to_string(),
 
+            HaskellType::String => name.to_string(),
             _ => name.to_string(),
         }
     }
@@ -221,6 +229,7 @@ impl HaskellType {
             HaskellType::F64 => "encodeFloat64",
             HaskellType::Bool => "encodeBool",
             HaskellType::Char => "encodeChar",
+            HaskellType::String => "encodeString",
             HaskellType::Generic { .. } | HaskellType::Tuple(_) => "encodeValue",
         }
     }
@@ -239,6 +248,7 @@ impl HaskellType {
             HaskellType::F64 => "Float64",
             HaskellType::Bool => "Bool",
             HaskellType::Char => "Char",
+            HaskellType::String => "String",
             HaskellType::Generic { .. } => "Generic",
             HaskellType::Tuple(_) => "Tuple",
         }

@@ -34,6 +34,8 @@ pub(crate) fn generate_functions_with_modules(file_modules: &[(String, Vec<Funct
 }
 
 fn generate_function(function: &Function, module_name: &str) -> String {
+    let type_param = if function.generics.is_empty() { "()" } else { "T" };
+
     let args_sig = function
         .args
         .iter()
@@ -44,7 +46,7 @@ fn generate_function(function: &Function, module_name: &str) -> String {
     let args_values = function
         .args
         .iter()
-        .map(|arg| arg.r#type.to_rust_value(&arg.name))
+        .map(|arg| arg.r#type.to_rust_value_with_param(&arg.name, type_param))
         .collect::<Vec<_>>()
         .join(", ");
 
