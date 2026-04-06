@@ -2,6 +2,8 @@ use std::path::PathBuf;
 
 use cargo_metadata::MetadataCommand;
 
+use super::errors::CompilerError;
+
 pub struct HaskellConfig {
     pub cabal_file: PathBuf,
     pub exports_dir: PathBuf,
@@ -12,18 +14,23 @@ const FALLBACK_CABAL_FILE: &str = "haskell_fallback/haskell.cabal";
 const FALLBACK_EXPORTS_DIR: &str = "haskell_fallback/app/exports";
 const FALLBACK_FOREIGN_LIBRARY: &str = "lib";
 
-pub(crate) fn load_haskell_config() -> Result<HaskellConfig, String> {
-    let metadata = MetadataCommand::new()
-        .exec()
-        .map_err(|e| format!("failed to read cargo metadata: {e}"))?;
+pub(crate) fn load_haskell_config() -> Result<HaskellConfig, CompilerError> {
+    let metadata =
+        MetadataCommand::new()
+            .exec()
+            .map_err(|e| CompilerError::CargoMetadataReadFailed {
+                reason: e.to_string(),
+            })?;
 
     let package = metadata
         .root_package()
-        .ok_or_else(|| "no root package found".to_string())?;
+        .ok_or(CompilerError::NoRootPackage)?;
 
     let manifest_dir = PathBuf::from(&package.manifest_path)
         .parent()
-        .ok_or_else(|| "failed to get manifest directory".to_string())?
+        .ok_or_else(|| CompilerError::ManifestDirResolutionFailed {
+            path: PathBuf::from(&package.manifest_path),
+        })?
         .to_path_buf();
 
     let cabal_meta = package.metadata.get("cabal_file").and_then(|v| v.as_str());
@@ -37,11 +44,7 @@ pub(crate) fn load_haskell_config() -> Result<HaskellConfig, String> {
     let none_defined = cabal_meta.is_none() && exports_meta.is_none() && foreign_meta.is_none();
 
     if !all_defined && !none_defined {
-        return Err(
-            "invalid config: define ALL of `cabal_file`, `exports_dir`, `foreign_library`, \
-             or NONE to use fallbacks"
-                .to_string(),
-        );
+        return Err(CompilerError::InvalidConfigPartial);
     }
 
     if all_defined {
@@ -50,17 +53,11 @@ pub(crate) fn load_haskell_config() -> Result<HaskellConfig, String> {
         let foreign_library = foreign_meta.unwrap().to_string();
 
         if !cabal_file.exists() {
-            return Err(format!(
-                "cabal file does not exist: {}",
-                cabal_file.display()
-            ));
+            return Err(CompilerError::CabalFileNotFound { path: cabal_file });
         }
 
         if !exports_dir.exists() {
-            return Err(format!(
-                "exports directory does not exist: {}",
-                exports_dir.display()
-            ));
+            return Err(CompilerError::ExportsDirNotFound { path: exports_dir });
         }
 
         return Ok(HaskellConfig {
@@ -75,17 +72,11 @@ pub(crate) fn load_haskell_config() -> Result<HaskellConfig, String> {
     let foreign_library = FALLBACK_FOREIGN_LIBRARY.to_string();
 
     if !cabal_file.exists() {
-        return Err(format!(
-            "fallback cabal file does not exist: {}",
-            cabal_file.display()
-        ));
+        return Err(CompilerError::FallbackCabalNotFound { path: cabal_file });
     }
 
     if !exports_dir.exists() {
-        return Err(format!(
-            "fallback exports directory does not exist: {}",
-            exports_dir.display()
-        ));
+        return Err(CompilerError::FallbackExportsDirNotFound { path: exports_dir });
     }
 
     println!(

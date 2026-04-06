@@ -1,12 +1,13 @@
-use std::{env, fs};
+use std::{env, fs, path::PathBuf};
 
-use crate::build::compiler::{cabal, config, utils};
 use crate::build::codegen::{generate_functions_with_modules, generate_haskell_dispatch};
+use crate::build::compiler::errors::CompilerError;
+use crate::build::compiler::{cabal, config, utils};
 use crate::build::utils::helpers::{
     collect_haskell_modules_from_exports, generate_user_functions_module,
 };
 
-pub fn build() -> Result<(), String> {
+pub fn build() -> Result<(), CompilerError> {
     let haskell_config = config::load_haskell_config()?;
 
     println!("cargo:rerun-if-changed=Cargo.toml");
@@ -27,14 +28,27 @@ pub fn build() -> Result<(), String> {
         let dispatch_content = generate_haskell_dispatch(&file_modules);
         let dispatch_path = generated_dir.join("dispatch.hs");
 
-        fs::create_dir_all(&vinculum_dir).map_err(|e| format!("Failed to create vinculum: {e}"))?;
-        fs::create_dir_all(&generated_dir)
-            .map_err(|e| format!("Failed to create generated: {e}"))?;
+        fs::create_dir_all(&vinculum_dir).map_err(|e| CompilerError::DirectoryCreationFailed {
+            path: vinculum_dir.clone(),
+            reason: e.to_string(),
+        })?;
+        fs::create_dir_all(&generated_dir).map_err(|e| CompilerError::DirectoryCreationFailed {
+            path: generated_dir.clone(),
+            reason: e.to_string(),
+        })?;
 
-        fs::write(&user_functions_path, user_functions_content)
-            .map_err(|e| format!("Failed to write UserFunctions.hs: {e}"))?;
-        fs::write(&dispatch_path, dispatch_content)
-            .map_err(|e| format!("Failed to write Dispatch.hs: {e}"))?;
+        fs::write(&user_functions_path, user_functions_content).map_err(|e| {
+            CompilerError::FileCopyFailed {
+                src: PathBuf::from("UserFunctions.hs"),
+                dst: user_functions_path.clone(),
+                reason: e.to_string(),
+            }
+        })?;
+        fs::write(&dispatch_path, dispatch_content).map_err(|e| CompilerError::FileCopyFailed {
+            src: PathBuf::from("dispatch.hs"),
+            dst: dispatch_path.clone(),
+            reason: e.to_string(),
+        })?;
 
         generate_functions_with_modules(&file_modules);
     }

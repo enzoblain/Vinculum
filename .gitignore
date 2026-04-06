@@ -54,4 +54,5 @@ coverage/
 result
 
 examples/haskell/app/exports/vinculum
+examples/src/functions.rs
 crates/vinculum-hs/haskell_fallback/app/exports/

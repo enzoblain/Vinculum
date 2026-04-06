@@ -1,3 +1,4 @@
+use std::error::Error;
 use std::fmt;
 
 #[derive(Debug)]
@@ -21,4 +22,4 @@ impl fmt::Display for FfiError {
     }
 }
 
-impl std::error::Error for FfiError {}
+impl Error for FfiError {}

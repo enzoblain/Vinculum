@@ -1,5 +1,5 @@
 use std::fs;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 use crate::build::parser::{Function, extract_functions};
 
@@ -70,10 +70,7 @@ pub(crate) fn collect_haskell_modules_from_exports(
     modules
 }
 
-fn collect_modules_recursive(
-    paths: &[std::path::PathBuf],
-    modules: &mut Vec<(String, Vec<Function>)>,
-) {
+fn collect_modules_recursive(paths: &[PathBuf], modules: &mut Vec<(String, Vec<Function>)>) {
     for path in paths {
         if path.is_file()
             && let Some("hs") = path.extension().and_then(|s| s.to_str())

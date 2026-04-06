@@ -4,24 +4,28 @@ use std::{
     process::Command,
 };
 
-pub(crate) fn find_cabal() -> Result<PathBuf, String> {
+use super::errors::CompilerError;
+
+pub(crate) fn find_cabal() -> Result<PathBuf, CompilerError> {
     let exe = if cfg!(windows) { "cabal.exe" } else { "cabal" };
-    let path = env::var_os("PATH").ok_or("PATH environment variable not set")?;
+    let path = env::var_os("PATH").ok_or(CompilerError::PathNotSet)?;
 
     env::split_paths(&path)
         .map(|dir| dir.join(exe))
         .find(|path| path.is_file())
-        .ok_or("cabal executable not found in PATH".to_string())
+        .ok_or(CompilerError::CabalNotFound)
 }
 
 pub(crate) fn build_haskell_dll(
     cabal_path: &Path,
     cabal_file: &Path,
     foreign_library: &str,
-) -> Result<(), String> {
+) -> Result<(), CompilerError> {
     let project_dir = cabal_file
         .parent()
-        .ok_or_else(|| format!("invalid cabal file path: {}", cabal_file.display()))?;
+        .ok_or_else(|| CompilerError::InvalidCabalPath {
+            path: cabal_file.to_path_buf(),
+        })?;
 
     let target = format!("flib:{foreign_library}");
 
@@ -29,15 +33,23 @@ pub(crate) fn build_haskell_dll(
         .args(["build", &target])
         .current_dir(project_dir)
         .output()
-        .map_err(|e| format!("failed to run cabal build: {e}"))?;
+        .map_err(|e| CompilerError::CabalBuildFailed {
+            target: target.clone(),
+            reason: e.to_string(),
+        })?;
 
     if !output.status.success() {
-        return Err(format!(
-            "`cabal build {target}` failed in {}\nstdout:\n{}\nstderr:\n{}",
-            project_dir.display(),
-            String::from_utf8_lossy(&output.stdout),
-            String::from_utf8_lossy(&output.stderr),
-        ));
+        let stdout = String::from_utf8_lossy(&output.stdout);
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        return Err(CompilerError::CabalBuildFailed {
+            target,
+            reason: format!(
+                "in {}\nstdout:\n{}\nstderr:\n{}",
+                project_dir.display(),
+                stdout,
+                stderr,
+            ),
+        });
     }
 
     let ext = if cfg!(target_os = "macos") {
@@ -47,14 +59,18 @@ pub(crate) fn build_haskell_dll(
     } else if cfg!(target_os = "windows") {
         "dll"
     } else {
-        return Err("unsupported target OS for dynamic libraries".to_string());
+        return Err(CompilerError::UnsupportedOS);
     };
 
     let file_name = format!("lib{foreign_library}.{ext}");
     let dist_dir = project_dir.join("dist-newstyle");
 
-    let src = find_library_recursive(&dist_dir, &file_name)
-        .ok_or_else(|| format!("library {file_name} not found in {}", dist_dir.display()))?;
+    let src = find_library_recursive(&dist_dir, &file_name).ok_or_else(|| {
+        CompilerError::LibraryNotFound {
+            library: file_name.clone(),
+            path: dist_dir.clone(),
+        }
+    })?;
 
     let target_dir = env::var("CARGO_TARGET_DIR")
         .map(PathBuf::from)
@@ -67,14 +83,21 @@ pub(crate) fn build_haskell_dll(
                     .join("target")
             })
         })
-        .map_err(|_| "failed to resolve target directory".to_string())?
+        .map_err(|_| CompilerError::TargetDirResolutionFailed {
+            reason: "neither CARGO_TARGET_DIR nor CARGO_MANIFEST_DIR set".to_string(),
+        })?
         .join("haskell");
 
-    fs::create_dir_all(&target_dir)
-        .map_err(|e| format!("failed to create {}: {e}", target_dir.display()))?;
+    fs::create_dir_all(&target_dir).map_err(|e| CompilerError::DirectoryCreationFailed {
+        path: target_dir.clone(),
+        reason: e.to_string(),
+    })?;
 
-    fs::copy(&src, target_dir.join(&file_name))
-        .map_err(|e| format!("failed to copy {}: {e}", src.display()))?;
+    fs::copy(&src, target_dir.join(&file_name)).map_err(|e| CompilerError::FileCopyFailed {
+        src,
+        dst: target_dir.join(&file_name),
+        reason: e.to_string(),
+    })?;
 
     Ok(())
 }

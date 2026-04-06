@@ -1,15 +1,19 @@
 use std::fs;
 use std::path::{Path, PathBuf};
 
-pub(crate) fn prepare_vinculum(exports_dir: &Path) -> Result<(), String> {
+use crate::build::compiler::errors::CompilerError;
+
+pub(crate) fn prepare_vinculum(exports_dir: &Path) -> Result<(), CompilerError> {
     let ffi_lib_dir = Path::new(env!("CARGO_MANIFEST_DIR")).join("ffi");
     let ffi_generated_dir = Path::new(env!("CARGO_MANIFEST_DIR")).join("ffi/generated");
 
     let vinculum_dir = exports_dir.join("vinculum");
     let generated_dir = vinculum_dir.join("generated");
 
-    fs::create_dir_all(&generated_dir)
-        .map_err(|e| format!("failed to create {}: {e}", generated_dir.display()))?;
+    fs::create_dir_all(&generated_dir).map_err(|e| CompilerError::DirectoryCreationFailed {
+        path: generated_dir.clone(),
+        reason: e.to_string(),
+    })?;
 
     copy_file(
         &ffi_lib_dir.join("Codec.hs"),
@@ -37,13 +41,19 @@ pub(crate) fn prepare_vinculum(exports_dir: &Path) -> Result<(), String> {
     Ok(())
 }
 
-fn copy_file(from: &PathBuf, to: &PathBuf) -> Result<(), String> {
+fn copy_file(from: &PathBuf, to: &PathBuf) -> Result<(), CompilerError> {
     if !from.exists() {
-        return Err(format!("missing source file: {}", from.display()));
+        return Err(CompilerError::FileReadFailed {
+            path: from.clone(),
+            reason: "file not found".to_string(),
+        });
     }
 
-    fs::copy(from, to)
-        .map_err(|e| format!("failed to copy {} to {}: {e}", from.display(), to.display()))?;
+    fs::copy(from, to).map_err(|e| CompilerError::FileCopyFailed {
+        src: from.clone(),
+        dst: to.clone(),
+        reason: e.to_string(),
+    })?;
 
     Ok(())
 }

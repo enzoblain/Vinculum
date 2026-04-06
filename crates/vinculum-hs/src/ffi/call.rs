@@ -1,3 +1,4 @@
+use std::ptr;
 use std::slice;
 
 use super::bindings::{call_haskell_function, free_haskell_buffer};
@@ -15,7 +16,7 @@ pub(crate) fn call_haskell_typed_checked<T: 'static>(
 ) -> Result<Value<T>, FfiError> {
     let input = Value::encode_slice(args);
 
-    let mut out_ptr: *mut u8 = std::ptr::null_mut();
+    let mut out_ptr: *mut u8 = ptr::null_mut();
     let mut out_len: usize = 0;
 
     unsafe {
