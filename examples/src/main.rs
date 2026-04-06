@@ -1,6 +1,4 @@
-use functions::math::{add, factorial, multiply};
-
-mod functions;
+use vinculum::math::{add, factorial, multiply};
 
 #[vinculum_hs::main]
 fn main() {
