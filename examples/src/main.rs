@@ -1,3 +1,5 @@
+mod vinculum;
+
 use vinculum::math::{add, factorial, multiply};
 
 #[vinculum_hs::main]

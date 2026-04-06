@@ -1,8 +1,8 @@
-# 🧵 Vinculum
+# 🧵 Vinculum-hs
 
 **Seamless Haskell–Rust interoperability through automated FFI bindings and procedural macros.**
 
-Write Haskell. Call it from Rust. Let Vinculum handle the rest.
+Write Haskell functions, call them from Rust with full type safety. Let Vinculum handle the rest.
 
 [![Crates.io](https://img.shields.io/crates/v/vinculum-hs.svg)](https://crates.io/crates/vinculum-hs)
 [![Docs.rs](https://docs.rs/vinculum-hs/badge.svg)](https://docs.rs/vinculum-hs)
@@ -12,8 +12,23 @@ Write Haskell. Call it from Rust. Let Vinculum handle the rest.
 
 ## Overview
 
-Vinculum lets you call Haskell functions directly from Rust with full type safety — no manual FFI, no boilerplate. A
-single attribute macro sets up the runtime, and a build script generates the bindings automatically.
+Vinculum is a Haskell–Rust interoperability framework that automates cross-language FFI bindings through compile-time code generation. Write your business logic in Haskell, use it from Rust without manual FFI plumbing or `unsafe` blocks.
+
+Instead of:
+```rust
+// ❌ Manual FFI (error-prone, verbose)
+extern "C" {
+    fn hs_add(a: i64, b: i64) -> i64;
+}
+unsafe { hs_add(5, 10) }
+```
+
+You get:
+```rust
+// ✅ Type-safe, auto-generated wrappers
+use vinculum::math::add;
+add(5, 10)  // Type-safe, no unsafe
+```
 
 > *Vinculum* — Latin for "bond" or "link."
 
@@ -21,26 +36,109 @@ single attribute macro sets up the runtime, and a build script generates the bin
 
 ## Features
 
-|                        |                                                               |
-|------------------------|---------------------------------------------------------------|
-| **Zero boilerplate**   | Bindings are generated automatically from your Haskell source |
-| **Type-safe**          | Generated wrappers enforce correctness at compile time        |
-| **Single macro**       | `#[vinculum::main]` handles runtime initialization            |
-| **Transparent builds** | Haskell compilation is orchestrated via Cargo                 |
-| **Minimal overhead**   | Direct FFI calls over the C ABI                               |
-| **IDE-friendly** | Compile-time generated bindings enable full IDE support: autocompletion, type checking, navigation, and inline documentation |
+| Feature | Benefit |
+|---------|---------|
+| **Zero boilerplate** | FFI bindings generated automatically from Haskell signatures |
+| **Type-safe** | Generated wrappers enforce correctness at compile time |
+| **Single macro** | `#[vinculum::main]` handles Haskell RTS initialization/shutdown |
+| **Transparent builds** | Haskell compilation orchestrated via `cargo build` |
+| **Minimal overhead** | Direct FFI calls over the C ABI |
+| **IDE-friendly** | Generated bindings enable autocomplete, type checking, and navigation |
+| **Rich type support** | Int8-64, Word8-64, Float, Double, Bool, Char, String, Tuples |
+
+---
+
+## How It Works
+
+```
+┌────────────────────────────┐
+│  Rust Application          │
+│  use vinculum::math::add   │  ← Type-safe generated wrapper
+├────────────────────────────┤
+│  Code Generation (build)   │  ← Parse .hs → Generate Rust + Haskell
+├────────────────────────────┤
+│  Haskell Runtime (dylib)   │  ← GHC-compiled shared library
+│  Dispatch → Real functions │
+└────────────────────────────┘
+```
+
+### Build Pipeline
+
+1. **Discovery** — Scan Haskell source directory for `.hs` files
+2. **Parsing** — Extract function signatures and type annotations
+3. **Haskell Codegen** — Generate `Dispatch.hs` and `UserFunctions.hs`
+4. **Cabal Build** — Compile Haskell to `.dylib` / `.so` with FFI exports
+5. **Rust Codegen** — Generate type-safe Rust wrappers
+6. **Linking** — Cargo links Haskell library into binary
+
+### Runtime Call Flow
+
+```
+Rust: add(5, 10)
+   ↓ call_haskell_typed()
+Encode: [Value::Int64(5), Value::Int64(10)] → bytes
+   ↓ FFI boundary
+Haskell Runtime.hs receives bytes
+   ↓ dispatchUserFunction()
+Haskell Math.add(5, 10) → 15
+   ↓ encodeValue()
+Decode bytes → Value::Int64(15)
+   ↓
+Result returned to Rust
+```
+
+---
+
+## Quick Start
+
+### Requirements
+
+- **Rust** 1.93+
+- **GHC** 9.0+ with Cabal
+- macOS, Linux, or Windows
+
+### Installation
+
+Add to your `Cargo.toml`:
+
+```toml
+[dependencies]
+vinculum-hs = "0.1"
+
+[build-dependencies]
+vinculum-hs = "0.1"
+
+[package.metadata]
+cabal_file = "haskell/haskell.cabal"           # Path to your Cabal file
+exports_dir = "haskell/app/exports"           # Where your .hs files are
+foreign_library = "lib"                        # Foreign-library name (from .cabal)
+```
+
+Also create a `build.rs` in your project root:
+
+```rust
+fn main() {
+    vinculum_hs::build().expect("Vinculum build failed");
+}
+```
+
+### Running the Example
+
+```bash
+git clone https://github.com/enzoblain/Vinculum
+cd Vinculum
+cargo run --example math
+```
 
 ---
 
 ## Example
 
-Suppose you have a Haskell module with a few arithmetic functions:
+### 1. Define Haskell Functions
 
-**`Math.hs`**
-
+**`examples/haskell/app/exports/Math.hs`**
 ```haskell
 module Math where
-
 import Data.Int
 
 add :: Int64 -> Int64 -> Int64
@@ -54,150 +152,97 @@ factorial 0 = 1
 factorial n = n * factorial (n - 1)
 ```
 
-Vinculum reads the module, generates type-safe Rust wrappers, and makes them available under
-`vinculum::functions::math`:
+### 2. Configure in Rust Project
 
-**`main.rs`**
-
-```rust
-use vinculum_hs::functions::math::{add, factorial, multiply};
-
-#[vinculum_hs::main]
-fn main() {
-    let a = 5;
-    let b = 10;
-
-    let result = add(a, b);
-    println!("{a} + {b} = {result}");
-
-    let result = multiply(a, b);
-    println!("{a} * {b} = {result}");
-
-    let result = factorial(a);
-    println!("Factorial a = {result}");
-}
-
-```
-
-**Output:**
-
-```
-add(12, 30)      = 42
-multiply(6, 7)   = 42
-factorial(10)    = 3628800
-```
-
-> **Configuration required:** You must specify where your Haskell files are located, either via:
-> - **Environment variable** (for development): `HASKELL_DIR=path/to/haskell cargo run`
-> - **Cargo.toml metadata** (for production): See [Configuring Haskell directories](#configuring-haskell-directories-for-your-application) below
-
-
-No `unsafe` blocks. No manual `extern "C"` declarations. No FFI plumbing.
-
----
-
-## How it works
-
-```
-┌──────────────────────────────┐
-│  Rust application            │
-│  math::add(12, 30)           │  ← type-safe generated wrapper
-└──────────────┬───────────────┘
-               │
-       ┌───────▼────────┐
-       │   Vinculum     │  ← code generation + runtime lifecycle
-       └───────┬────────┘
-               │  C ABI / FFI
-       ┌───────▼────────┐
-       │ Haskell runtime│  ← GHC-compiled shared library
-       │ math_add(a, b) │
-       └────────────────┘
-```
-
-1. **Build time** — the build script compiles your Haskell module with GHC and generates Rust binding code.
-2. **Compile time** — generated wrappers are included via `functions.rs`; the type system enforces correct usage.
-3. **Runtime** — `#[vinculum::main]` initializes and tears down the Haskell RTS transparently.
-
----
-
-## Getting started
-
-### Requirements
-
-- Rust 1.93+
-- GHC 9.0+ with Cabal
-- Linux / MacOS / Windows
-
-### Installation
-
-Add to your `Cargo.toml`:
-
+**`Cargo.toml`**
 ```toml
+[package]
+name = "my-app"
+
 [dependencies]
 vinculum-hs = "0.1"
 
-[package.metadata.vinculum]
-haskell_directory = "src/haskell"  # Path to your Haskell modules
+[package.metadata]
+haskell_directory = "haskell/app/exports"  # Where your .hs files are
 ```
 
-Or use the `HASKELL_DIR` environment variable at runtime:
-```bash
-HASKELL_DIR=src/haskell cargo run
+**`build.rs`**
+```rust
+fn main() {
+    vinculum_hs::build().expect("Vinculum build failed");
+}
+```
+
+### 3. Use in Rust
+
+**`src/main.rs`**
+```rust
+use vinculum::math::{add, multiply, factorial};
+
+#[vinculum_hs::main]
+fn main() {
+    println!("5 + 10 = {}", add(5, 10));
+    println!("5 * 10 = {}", multiply(5, 10));
+    println!("Factorial 5 = {}", factorial(5));
+}
+```
+
+**Output:**
+```
+5 + 10 = 15
+5 * 10 = 50
+Factorial 5 = 120
 ```
 
 ---
 
-### Run the example
+## Type Support
 
-To run an example, specify the Haskell source directory via the `HASKELL_DIR` environment variable:
+Vinculum supports a rich set of Haskell types:
 
-```bash
-git clone https://github.com/enzoblain/Vinculum
-cd Vinculum
-HASKELL_DIR=examples/haskell cargo run --example math
-```
-
----
-
-### Development setup
-
-**Important:** The `crates/vinculum-hs/src/functions.rs` file is auto-generated during build. To prevent Git
-conflicts and accidental commits of generated code, mark it as skip-worktree:
-
-```bash
-git update-index --skip-worktree crates/vinculum-hs/src/functions.rs
-```
-
-This tells Git to ignore local changes to the file while keeping it under version control. The file will be
-regenerated automatically whenever you rebuild the project (`cargo build` or `cargo run`).
-
-To restore tracking if needed:
-
-```bash
-git update-index --no-skip-worktree crates/vinculum-hs/src/functions.rs
-```
+| Haskell | Rust | Notes |
+|---------|------|-------|
+| `Int8` | `i8` | 8-bit signed integer |
+| `Int16` | `i16` | 16-bit signed integer |
+| `Int32` | `i32` | 32-bit signed integer |
+| `Int64` | `i64` | 64-bit signed integer |
+| `Word8` | `u8` | 8-bit unsigned integer |
+| `Word16` | `u16` | 16-bit unsigned integer |
+| `Word32` | `u32` | 32-bit unsigned integer |
+| `Word64` | `u64` | 64-bit unsigned integer |
+| `Float` | `f32` | Single-precision float |
+| `Double` | `f64` | Double-precision float |
+| `Bool` | `bool` | Boolean |
+| `Char` | `char` | Unicode character |
+| `String` | `String` | UTF-8 string |
+| `(a, b)` | `(T1, T2)` | Tuples |
 
 ---
 
 ## Roadmap
 
-- [x] Automatic binding generation from Haskell modules
-- [x] `#[vinculum::main]` procedural macro
-- [x] Type-safe FFI wrappers
+- [x] Automatic FFI binding generation from Haskell modules
+- [x] Procedural macro for RTS lifecycle
+- [x] Type-safe cross-language wrappers
 - [x] Cargo-driven build orchestration
-- [ ] Haskell library support — declare Hackage dependencies in `Cargo.toml` and let Vinculum resolve and link them
-  automatically
-- [ ] Richer Haskell type support (`Maybe`, `Either`, `String`, …)
-- [ ] Async / concurrent interoperability
-- [ ] Advanced error propagation across the FFI boundary
-- [ ] Extended examples and benchmarks
+- [x] Multi-type support (Int, Float, Bool, String, Tuples)
+- [ ] `Maybe` and `Either` type support
+- [ ] Async/concurrent interoperability
+- [ ] Enhanced error propagation across FFI
+- [ ] Benchmarks and performance optimization
+- [ ] Extended documentation and examples
 
 ---
 
 ## Contributing
 
-Contributions are welcome and appreciated.  
-Feel free to open an issue to discuss changes or submit a pull request directly.
+Contributions are welcome! Feel free to open an issue to discuss changes or submit a pull request.
+
+---
+
+## License
+
+MIT
 
 Please ensure that your contributions align with the project's goals and maintain code quality and consistency.
 

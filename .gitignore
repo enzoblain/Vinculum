@@ -1,22 +1,28 @@
+# macOS
 .DS_Store
+.AppleDouble
+.LSOverride
+
+# Windows
 Thumbs.db
+
+# Editors & Temp files
 *.swp
 *.swo
+*~
 *.tmp
 *.log
 
+# Rust/Cargo
 target/
-**/*.rs.bk
 Cargo.lock
-.cargo/
-rustfmt.toml
+**/*.rs.bk
+*.profraw
+*.profdata
 
-.dist/
-.dist-newstyle/
+# Haskell/Cabal/GHC
 dist-newstyle/
-.stack-work/
-.cabal-sandbox/
-cabal.sandbox.config
+.ghc.environment.*
 *.hi
 *.o
 *.dyn_o
@@ -26,33 +32,29 @@ cabal.sandbox.config
 *.hp
 *.eventlog
 
-*.so
-*.dll
-*.dylib
-*.a
-
+# IDEs
 .vscode/
 .idea/
 *.iml
 *.code-workspace
+.metals/
 
+# Environment & Secrets
 .env
 .env.*
 *.key
 
+# Code coverage
 coverage/
 *.gcda
 *.gcno
 *.gcov
 
-*.bin
-*.dat
-*.map
+# Build/cache directories
 /tmp/
 /data/
 
-result
-
-examples/haskell/app/exports/vinculum
-examples/src/vinculum
+# Generated project files (Vinculum FFI bindings & exports)
+examples/haskell/app/exports/vinculum/
+examples/src/vinculum/
 crates/vinculum-hs/haskell_fallback/app/exports/
