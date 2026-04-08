@@ -20,18 +20,6 @@ Cargo.lock
 *.profraw
 *.profdata
 
-# Haskell/Cabal/GHC
-dist-newstyle/
-.ghc.environment.*
-*.hi
-*.o
-*.dyn_o
-*.dyn_hi
-*.prof
-*.aux
-*.hp
-*.eventlog
-
 # IDEs
 .vscode/
 .idea/
@@ -53,8 +41,3 @@ coverage/
 # Build/cache directories
 /tmp/
 /data/
-
-# Generated project files (Vinculum FFI bindings & exports)
-examples/haskell/app/exports/vinculum/
-examples/src/vinculum/
-crates/vinculum-hs/haskell_fallback/app/exports/

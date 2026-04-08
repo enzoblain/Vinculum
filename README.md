@@ -1,254 +1,155 @@
-# 🧵 Vinculum-hs
+# Vinculum
 
-**Seamless Haskell–Rust interoperability through automated FFI bindings and procedural macros.**
-
-Write Haskell functions, call them from Rust with full type safety. Let Vinculum handle the rest.
-
-[![Crates.io](https://img.shields.io/crates/v/vinculum-hs.svg)](https://crates.io/crates/vinculum-hs)
-[![Docs.rs](https://docs.rs/vinculum-hs/badge.svg)](https://docs.rs/vinculum-hs)
+[![Crates.io](https://img.shields.io/crates/v/vinculum-main.svg)](https://crates.io/crates/vinculum-main)
+[![Docs.rs](https://docs.rs/vinculum-main/badge.svg)](https://docs.rs/vinculum-main)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Build Status](https://img.shields.io/github/actions/workflow/status/your-org/vinculum/ci.yml?branch=main)](https://github.com/your-org/vinculum/actions)
+
+> Call a Haskell function as if it were a Rust function: no `unsafe`, no handwritten bindings.
+
+Vinculum generates Rust binding files at build time by reading the target language's exported function signatures. The result is idiomatic, type-safe Rust code that calls across the language boundary without any FFI boilerplate.
+
+This crate is the **shared foundation** of the ecosystem: common types, binary serialization format, and compile-time safety guarantees. Language-specific crates (e.g. `vinculum-hs`) depend on it and handle the runtime bridge and codegen.
 
 ---
 
-## Overview
+## Architecture
 
-Vinculum is a Haskell–Rust interoperability framework that automates cross-language FFI bindings through compile-time code generation. Write your business logic in Haskell, use it from Rust without manual FFI plumbing or `unsafe` blocks.
+```
+┌──────────────────────────────────────┐
+│           vinculum-main              │
+│   Value · AcceptedTypes · ToValue    │
+│   Serialization · Macros             │
+└──────────────────┬───────────────────┘
+                   │
+          ┌──────────────────┐    ┌ ─ ─ ─ ─ ─ ─ ─ ─ ─ ┐
+          │  vinculum-hs     │      more backends
+          │   (Haskell)      │    │    planned · · ·    │
+          └──────────────────┘    └ ─ ─ ─ ─ ─ ─ ─ ─ ─ ┘
+```
 
-Instead of:
+Every backend shares the same `Value` type and binary format. The only difference is how each backend moves bytes across the language boundary.
+
+---
+
+## What This Crate Provides
+
+### `Value`
+
+A unified, backend-agnostic representation of all data exchanged through Vinculum:
+
 ```rust
-// ❌ Manual FFI (error-prone, verbose)
-extern "C" {
-    fn hs_add(a: i64, b: i64) -> i64;
-}
-unsafe { hs_add(5, 10) }
+Value::Int64(42)
+Value::Float64(3.14)
+Value::String("hello".to_string())
+Value::Bool(true)
+Value::Array(vec![...])
+Value::Unit
 ```
 
-You get:
+### `AcceptedTypes`
+
+A compile-time mechanism that restricts which Rust types may cross the FFI boundary. Types must be explicitly registered before use:
+
 ```rust
-// ✅ Type-safe, auto-generated wrappers
-use vinculum::math::add;
-add(5, 10)  // Type-safe, no unsafe
+accepted_i64!();
+accepted_string!();
 ```
 
-> *Vinculum* — Latin for "bond" or "link."
+Attempting to use an unregistered type is a **compile error**, not a runtime panic.
 
----
+### `ToValue`
 
-## Features
+A conversion trait that transforms Rust values into `Value`:
 
-| Feature | Benefit |
-|---------|---------|
-| **Zero boilerplate** | FFI bindings generated automatically from Haskell signatures |
-| **Type-safe** | Generated wrappers enforce correctness at compile time |
-| **Single macro** | `#[vinculum::main]` handles Haskell RTS initialization/shutdown |
-| **Transparent builds** | Haskell compilation orchestrated via `cargo build` |
-| **Minimal overhead** | Direct FFI calls over the C ABI |
-| **IDE-friendly** | Generated bindings enable autocomplete, type checking, and navigation |
-| **Rich type support** | Int8-64, Word8-64, Float, Double, Bool, Char, String, Tuples |
-
----
-
-## How It Works
-
-```
-┌────────────────────────────┐
-│  Rust Application          │
-│  use vinculum::math::add   │  ← Type-safe generated wrapper
-├────────────────────────────┤
-│  Code Generation (build)   │  ← Parse .hs → Generate Rust + Haskell
-├────────────────────────────┤
-│  Haskell Runtime (dylib)   │  ← GHC-compiled shared library
-│  Dispatch → Real functions │
-└────────────────────────────┘
+```rust
+let v: Value = 42i64.to_value();
 ```
 
-### Build Pipeline
+Implementations are generated automatically for registered types. Custom implementations can be provided manually for complex types.
 
-1. **Discovery** — Scan Haskell source directory for `.hs` files
-2. **Parsing** — Extract function signatures and type annotations
-3. **Haskell Codegen** — Generate `Dispatch.hs` and `UserFunctions.hs`
-4. **Cabal Build** — Compile Haskell to `.dylib` / `.so` with FFI exports
-5. **Rust Codegen** — Generate type-safe Rust wrappers
-6. **Linking** — Cargo links Haskell library into binary
+### Serialization format
 
-### Runtime Call Flow
+A deterministic binary format designed to be simple, compact, and easy to implement in any language:
 
 ```
-Rust: add(5, 10)
-   ↓ call_haskell_typed()
-Encode: [Value::Int64(5), Value::Int64(10)] → bytes
-   ↓ FFI boundary
-Haskell Runtime.hs receives bytes
-   ↓ dispatchUserFunction()
-Haskell Math.add(5, 10) → 15
-   ↓ encodeValue()
-Decode bytes → Value::Int64(15)
-   ↓
-Result returned to Rust
+[tag: 1 byte][payload: variable]
 ```
+
+- 1-byte tag identifying the value type
+- Little-endian encoding for all numeric types
+- Length-prefixed encoding for dynamic data (strings, arrays)
+- Recursive structure for nested values
+
+Implementing a new backend means implementing a decoder for this format — the data model is already defined here.
 
 ---
 
 ## Quick Start
 
-### Requirements
+> For end-to-end usage including codegen and the Haskell bridge, see [`vinculum-hs`](https://github.com/your-org/vinculum-hs).
 
-- **Rust** 1.93+
-- **GHC** 9.0+ with Cabal
-- macOS, Linux, or Windows
-
-### Installation
-
-Add to your `Cargo.toml`:
+`vinculum-main` is typically pulled in as a transitive dependency. If you are implementing a new backend or working with the core types directly:
 
 ```toml
 [dependencies]
-vinculum-hs = "0.1"
-
-[build-dependencies]
-vinculum-hs = "0.1"
-
-[package.metadata]
-cabal_file = "haskell/haskell.cabal"           # Path to your Cabal file
-exports_dir = "haskell/app/exports"           # Where your .hs files are
-foreign_library = "lib"                        # Foreign-library name (from .cabal)
-```
-
-Also create a `build.rs` in your project root:
-
-```rust
-fn main() {
-    vinculum_hs::build().expect("Vinculum build failed");
-}
-```
-
-### Running the Example
-
-```bash
-git clone https://github.com/enzoblain/Vinculum
-cd Vinculum
-cargo run --example math
+vinculum-main = "0.1"
 ```
 
 ---
 
-## Example
+## Binding generation
 
-### 1. Define Haskell Functions
+The core value proposition of Vinculum is **automatic binding generation**. At build time, a language-specific backend (e.g. `vinculum-hs`) reads the exported function signatures from the target language and generates a Rust source file — one typed function per export.
 
-**`examples/haskell/app/exports/Math.hs`**
-```haskell
-module Math where
-import Data.Int
-
-add :: Int64 -> Int64 -> Int64
-add a b = a + b
-
-multiply :: Int64 -> Int64 -> Int64
-multiply a b = a * b
-
-factorial :: Int64 -> Int64
-factorial 0 = 1
-factorial n = n * factorial (n - 1)
-```
-
-### 2. Configure in Rust Project
-
-**`Cargo.toml`**
-```toml
-[package]
-name = "my-app"
-
-[dependencies]
-vinculum-hs = "0.1"
-
-[package.metadata]
-haskell_directory = "haskell/app/exports"  # Where your .hs files are
-```
-
-**`build.rs`**
 ```rust
-fn main() {
-    vinculum_hs::build().expect("Vinculum build failed");
-}
+// generated — do not edit
+pub fn add(a: i64, b: i64) -> i64 { ... }
+pub fn greet(name: String) -> String { ... }
 ```
 
-### 3. Use in Rust
+These functions are safe, typed, and call directly into the foreign library. No `extern "C"`, no raw pointers, no manual serialization.
 
-**`src/main.rs`**
-```rust
-use vinculum::math::{add, multiply, factorial};
-
-#[vinculum_hs::main]
-fn main() {
-    println!("5 + 10 = {}", add(5, 10));
-    println!("5 * 10 = {}", multiply(5, 10));
-    println!("Factorial 5 = {}", factorial(5));
-}
-```
-
-**Output:**
-```
-5 + 10 = 15
-5 * 10 = 50
-Factorial 5 = 120
-```
+`vinculum-main` provides the types and serialization layer that generated bindings are built on.
 
 ---
 
-## Type Support
+## Ecosystem
 
-Vinculum supports a rich set of Haskell types:
-
-| Haskell | Rust | Notes |
-|---------|------|-------|
-| `Int8` | `i8` | 8-bit signed integer |
-| `Int16` | `i16` | 16-bit signed integer |
-| `Int32` | `i32` | 32-bit signed integer |
-| `Int64` | `i64` | 64-bit signed integer |
-| `Word8` | `u8` | 8-bit unsigned integer |
-| `Word16` | `u16` | 16-bit unsigned integer |
-| `Word32` | `u32` | 32-bit unsigned integer |
-| `Word64` | `u64` | 64-bit unsigned integer |
-| `Float` | `f32` | Single-precision float |
-| `Double` | `f64` | Double-precision float |
-| `Bool` | `bool` | Boolean |
-| `Char` | `char` | Unicode character |
-| `String` | `String` | UTF-8 string |
-| `(a, b)` | `(T1, T2)` | Tuples |
+| Crate | Status | Description |
+|---|---|---|
+| `vinculum-main` | Active | Shared types, traits, and serialization (this crate) |
+| `vinculum-hs` | Active | Haskell ↔ Rust bridge |
+| more backends | Planned | — |
 
 ---
 
 ## Roadmap
 
-- [x] Automatic FFI binding generation from Haskell modules
-- [x] Procedural macro for RTS lifecycle
-- [x] Type-safe cross-language wrappers
-- [x] Cargo-driven build orchestration
-- [x] Multi-type support (Int, Float, Bool, String, Tuples)
-- [ ] `Maybe` and `Either` type support
-- [ ] Async/concurrent interoperability
-- [ ] Enhanced error propagation across FFI
-- [ ] Benchmarks and performance optimization
-- [ ] Extended documentation and examples
+- [x] Core `Value` type system
+- [x] Binary serialization format
+- [x] Compile-time type validation
+- [ ] Deserialization API
+- [ ] Rust binding file generation
+- [ ] Safer buffer handling (bounded writers, error propagation)
+- [ ] `no_std` compatibility
+- [ ] Backend-specific extension traits
+- [ ] Performance benchmarks
 
 ---
 
 ## Contributing
 
-Contributions are welcome! Feel free to open an issue to discuss changes or submit a pull request.
+Contributions are welcome. Please open an issue before submitting large changes.
+
+Because this crate is the foundation of the entire ecosystem, pull requests are held to a higher standard than in language-specific crates:
+
+- **Minimal**: small, focused changes preferred
+- **Generic**: no language-specific logic
+- **Backward-compatible**: breaking changes require a major version bump and prior discussion
 
 ---
 
 ## License
 
-MIT
-
-Please ensure that your contributions align with the project's goals and maintain code quality and consistency.
-
----
-
-## License
-
-This project is licensed under the MIT License.  
-See the [LICENSE](LICENSE) file for details.
+This project is licensed under the [MIT](LICENSE) license.
