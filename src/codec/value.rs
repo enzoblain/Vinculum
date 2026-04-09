@@ -1,6 +1,6 @@
 use std::ffi::{c_void, CStr, CString};
 
-use crate::ffi::types::AcceptedTypes;
+use crate::codec::AcceptedTypes;
 
 /// Dynamically typed value used by Vinculum's FFI layer.
 ///
@@ -125,7 +125,7 @@ pub struct Handle(pub u64);
 /// Wrapper around a raw function pointer.
 ///
 /// This is separate from `*const c_void` to avoid ambiguity with other
-/// pointer types and allow a dedicated implementation.
+/// pointer codec and allow a dedicated implementation.
 pub struct FnPtr(pub *const c_void);
 
 /// Wrapper around a boxed slice of [`Value`].

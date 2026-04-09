@@ -1,18 +1,18 @@
-use crate::ffi::types::Value;
+use crate::codec::Value;
 
-/// Marker trait for types supported by a Vinculum FFI backend.
+/// Marker trait for codec supported by a Vinculum FFI backend.
 ///
 /// [`Value`] defines the full set of value kinds available in the Vinculum
 /// abstraction, but a given backend may only support a subset of them.
 ///
-/// Backend-specific modules or language crates must mark supported types
+/// Backend-specific modules or language crates must mark supported codec
 /// using the provided `accepted_*` macros.
 ///
 /// Any type that does not implement `AcceptedTypes` is considered unsupported
 /// by that backend, even if it exists in [`Value`].
 ///
 /// This trait is intentionally empty and only serves as a compile-time filter
-/// for backend-supported types.
+/// for backend-supported codec.
 ///
 /// # Usage
 ///
@@ -58,7 +58,7 @@ pub trait AcceptedTypes: Sized {}
 /// - `ToValue` → conversion logic (how it is encoded)
 ///
 /// This separation allows:
-/// - strict compile-time validation of supported types
+/// - strict compile-time validation of supported codec
 /// - zero-cost conversions
 /// - consistent behavior across backends
 ///
@@ -76,11 +76,11 @@ pub trait ToValue<T: AcceptedTypes>: Sized {
 #[macro_export]
 macro_rules! accepted_null {
     () => {
-        impl AcceptedTypes for vinculum_main::ffi::types::Null {}
+        impl AcceptedTypes for vinculum_main::codec::Null {}
 
-        impl<'a, T: AcceptedTypes> ToValue<'a, T> for vinculum_main::ffi::types::Null {
-            fn to_value(&'a self) -> vinculum_main::ffi::types::Value<'a, T> {
-                vinculum_main::ffi::types::Value::Null
+        impl<'a, T: AcceptedTypes> ToValue<'a, T> for vinculum_main::codec::Null {
+            fn to_value(&'a self) -> vinculum_main::codec::Value<'a, T> {
+                vinculum_main::codec::Value::Null
             }
         }
     };
@@ -92,8 +92,8 @@ macro_rules! accepted_unit {
         impl AcceptedTypes for () {}
 
         impl<'a, T: AcceptedTypes> ToValue<'a, T> for () {
-            fn to_value(&'a self) -> vinculum_main::ffi::types::Value<'a, T> {
-                vinculum_main::ffi::types::Value::Unit
+            fn to_value(&'a self) -> vinculum_main::codec::Value<'a, T> {
+                vinculum_main::codec::Value::Unit
             }
         }
     };
@@ -105,8 +105,8 @@ macro_rules! accepted_bool {
         impl AcceptedTypes for bool {}
 
         impl<'a, T: AcceptedTypes> ToValue<'a, T> for bool {
-            fn to_value(&'a self) -> vinculum_main::ffi::types::Value<'a, T> {
-                vinculum_main::ffi::types::Value::Bool(*self)
+            fn to_value(&'a self) -> vinculum_main::codec::Value<'a, T> {
+                vinculum_main::codec::Value::Bool(*self)
             }
         }
     };
@@ -118,8 +118,8 @@ macro_rules! accepted_char {
         impl AcceptedTypes for char {}
 
         impl<'a, T: AcceptedTypes> ToValue<'a, T> for char {
-            fn to_value(&'a self) -> vinculum_main::ffi::types::Value<'a, T> {
-                vinculum_main::ffi::types::Value::Char(*self)
+            fn to_value(&'a self) -> vinculum_main::codec::Value<'a, T> {
+                vinculum_main::codec::Value::Char(*self)
             }
         }
     };
@@ -131,8 +131,8 @@ macro_rules! accepted_i8 {
         impl AcceptedTypes for i8 {}
 
         impl<'a, T: AcceptedTypes> ToValue<'a, T> for i8 {
-            fn to_value(&'a self) -> vinculum_main::ffi::types::Value<'a, T> {
-                vinculum_main::ffi::types::Value::Int8(*self)
+            fn to_value(&'a self) -> vinculum_main::codec::Value<'a, T> {
+                vinculum_main::codec::Value::Int8(*self)
             }
         }
     };
@@ -144,8 +144,8 @@ macro_rules! accepted_i16 {
         impl AcceptedTypes for i16 {}
 
         impl<'a, T: AcceptedTypes> ToValue<'a, T> for i16 {
-            fn to_value(&'a self) -> vinculum_main::ffi::types::Value<'a, T> {
-                vinculum_main::ffi::types::Value::Int16(*self)
+            fn to_value(&'a self) -> vinculum_main::codec::Value<'a, T> {
+                vinculum_main::codec::Value::Int16(*self)
             }
         }
     };
@@ -157,8 +157,8 @@ macro_rules! accepted_i32 {
         impl AcceptedTypes for i32 {}
 
         impl<'a, T: AcceptedTypes> ToValue<'a, T> for i32 {
-            fn to_value(&'a self) -> vinculum_main::ffi::types::Value<'a, T> {
-                vinculum_main::ffi::types::Value::Int32(*self)
+            fn to_value(&'a self) -> vinculum_main::codec::Value<'a, T> {
+                vinculum_main::codec::Value::Int32(*self)
             }
         }
     };
@@ -170,8 +170,8 @@ macro_rules! accepted_i64 {
         impl AcceptedTypes for i64 {}
 
         impl<'a, T: AcceptedTypes> ToValue<'a, T> for i64 {
-            fn to_value(&'a self) -> vinculum_main::ffi::types::Value<'a, T> {
-                vinculum_main::ffi::types::Value::Int64(*self)
+            fn to_value(&'a self) -> vinculum_main::codec::Value<'a, T> {
+                vinculum_main::codec::Value::Int64(*self)
             }
         }
     };
@@ -183,8 +183,8 @@ macro_rules! accepted_i128 {
         impl AcceptedTypes for i128 {}
 
         impl<'a, T: AcceptedTypes> ToValue<'a, T> for i128 {
-            fn to_value(&'a self) -> vinculum_main::ffi::types::Value<'a, T> {
-                vinculum_main::ffi::types::Value::Int128(*self)
+            fn to_value(&'a self) -> vinculum_main::codec::Value<'a, T> {
+                vinculum_main::codec::Value::Int128(*self)
             }
         }
     };
@@ -196,8 +196,8 @@ macro_rules! accepted_isize {
         impl AcceptedTypes for isize {}
 
         impl<'a, T: AcceptedTypes> ToValue<'a, T> for isize {
-            fn to_value(&'a self) -> vinculum_main::ffi::types::Value<'a, T> {
-                vinculum_main::ffi::types::Value::Isize(*self)
+            fn to_value(&'a self) -> vinculum_main::codec::Value<'a, T> {
+                vinculum_main::codec::Value::Isize(*self)
             }
         }
     };
@@ -209,8 +209,8 @@ macro_rules! accepted_u8 {
         impl AcceptedTypes for u8 {}
 
         impl<'a, T: AcceptedTypes> ToValue<'a, T> for u8 {
-            fn to_value(&'a self) -> vinculum_main::ffi::types::Value<'a, T> {
-                vinculum_main::ffi::types::Value::U8(*self)
+            fn to_value(&'a self) -> vinculum_main::codec::Value<'a, T> {
+                vinculum_main::codec::Value::U8(*self)
             }
         }
     };
@@ -222,8 +222,8 @@ macro_rules! accepted_u16 {
         impl AcceptedTypes for u16 {}
 
         impl<'a, T: AcceptedTypes> ToValue<'a, T> for u16 {
-            fn to_value(&'a self) -> vinculum_main::ffi::types::Value<'a, T> {
-                vinculum_main::ffi::types::Value::U16(*self)
+            fn to_value(&'a self) -> vinculum_main::codec::Value<'a, T> {
+                vinculum_main::codec::Value::U16(*self)
             }
         }
     };
@@ -235,8 +235,8 @@ macro_rules! accepted_u32 {
         impl AcceptedTypes for u32 {}
 
         impl<'a, T: AcceptedTypes> ToValue<'a, T> for u32 {
-            fn to_value(&'a self) -> vinculum_main::ffi::types::Value<'a, T> {
-                vinculum_main::ffi::types::Value::U32(*self)
+            fn to_value(&'a self) -> vinculum_main::codec::Value<'a, T> {
+                vinculum_main::codec::Value::U32(*self)
             }
         }
     };
@@ -248,8 +248,8 @@ macro_rules! accepted_u64 {
         impl AcceptedTypes for u64 {}
 
         impl<'a, T: AcceptedTypes> ToValue<'a, T> for u64 {
-            fn to_value(&'a self) -> vinculum_main::ffi::types::Value<'a, T> {
-                vinculum_main::ffi::types::Value::U64(*self)
+            fn to_value(&'a self) -> vinculum_main::codec::Value<'a, T> {
+                vinculum_main::codec::Value::U64(*self)
             }
         }
     };
@@ -261,8 +261,8 @@ macro_rules! accepted_u128 {
         impl AcceptedTypes for u128 {}
 
         impl<'a, T: AcceptedTypes> ToValue<'a, T> for u128 {
-            fn to_value(&'a self) -> vinculum_main::ffi::types::Value<'a, T> {
-                vinculum_main::ffi::types::Value::U128(*self)
+            fn to_value(&'a self) -> vinculum_main::codec::Value<'a, T> {
+                vinculum_main::codec::Value::U128(*self)
             }
         }
     };
@@ -274,8 +274,8 @@ macro_rules! accepted_usize {
         impl AcceptedTypes for usize {}
 
         impl<'a, T: AcceptedTypes> ToValue<'a, T> for usize {
-            fn to_value(&'a self) -> vinculum_main::ffi::types::Value<'a, T> {
-                vinculum_main::ffi::types::Value::Usize(*self)
+            fn to_value(&'a self) -> vinculum_main::codec::Value<'a, T> {
+                vinculum_main::codec::Value::Usize(*self)
             }
         }
     };
@@ -287,8 +287,8 @@ macro_rules! accepted_f32 {
         impl AcceptedTypes for f32 {}
 
         impl<'a, T: AcceptedTypes> ToValue<'a, T> for f32 {
-            fn to_value(&'a self) -> vinculum_main::ffi::types::Value<'a, T> {
-                vinculum_main::ffi::types::Value::Float32(*self)
+            fn to_value(&'a self) -> vinculum_main::codec::Value<'a, T> {
+                vinculum_main::codec::Value::Float32(*self)
             }
         }
     };
@@ -300,8 +300,8 @@ macro_rules! accepted_f64 {
         impl AcceptedTypes for f64 {}
 
         impl<'a, T: AcceptedTypes> ToValue<'a, T> for f64 {
-            fn to_value(&'a self) -> vinculum_main::ffi::types::Value<'a, T> {
-                vinculum_main::ffi::types::Value::Float64(*self)
+            fn to_value(&'a self) -> vinculum_main::codec::Value<'a, T> {
+                vinculum_main::codec::Value::Float64(*self)
             }
         }
     };
@@ -313,8 +313,8 @@ macro_rules! accepted_str {
         impl AcceptedTypes for &'static str {}
 
         impl<'a, T: AcceptedTypes> ToValue<'a, T> for &'a str {
-            fn to_value(&'a self) -> vinculum_main::ffi::types::Value<'a, T> {
-                vinculum_main::ffi::types::Value::Str(*self)
+            fn to_value(&'a self) -> vinculum_main::codec::Value<'a, T> {
+                vinculum_main::codec::Value::Str(*self)
             }
         }
     };
@@ -326,8 +326,8 @@ macro_rules! accepted_string {
         impl AcceptedTypes for String {}
 
         impl<'a, T: AcceptedTypes> ToValue<'a, T> for String {
-            fn to_value(&'a self) -> vinculum_main::ffi::types::Value<'a, T> {
-                vinculum_main::ffi::types::Value::String(self.clone())
+            fn to_value(&'a self) -> vinculum_main::codec::Value<'a, T> {
+                vinculum_main::codec::Value::String(self.clone())
             }
         }
     };
@@ -339,8 +339,8 @@ macro_rules! accepted_cstr {
         impl AcceptedTypes for &'static std::ffi::CStr {}
 
         impl<'a, T: AcceptedTypes> ToValue<'a, T> for &'a std::ffi::CStr {
-            fn to_value(&'a self) -> vinculum_main::ffi::types::Value<'a, T> {
-                vinculum_main::ffi::types::Value::CStr(*self)
+            fn to_value(&'a self) -> vinculum_main::codec::Value<'a, T> {
+                vinculum_main::codec::Value::CStr(*self)
             }
         }
     };
@@ -352,8 +352,8 @@ macro_rules! accepted_cstring {
         impl AcceptedTypes for std::ffi::CString {}
 
         impl<'a, T: AcceptedTypes> ToValue<'a, T> for std::ffi::CString {
-            fn to_value(&'a self) -> vinculum_main::ffi::types::Value<'a, T> {
-                vinculum_main::ffi::types::Value::CString(self.clone())
+            fn to_value(&'a self) -> vinculum_main::codec::Value<'a, T> {
+                vinculum_main::codec::Value::CString(self.clone())
             }
         }
     };
@@ -365,8 +365,8 @@ macro_rules! accepted_bytes {
         impl AcceptedTypes for &'static [u8] {}
 
         impl<'a, T: AcceptedTypes> ToValue<'a, T> for &'a [u8] {
-            fn to_value(&'a self) -> vinculum_main::ffi::types::Value<'a, T> {
-                vinculum_main::ffi::types::Value::Bytes(*self)
+            fn to_value(&'a self) -> vinculum_main::codec::Value<'a, T> {
+                vinculum_main::codec::Value::Bytes(*self)
             }
         }
     };
@@ -378,8 +378,8 @@ macro_rules! accepted_bytevec {
         impl AcceptedTypes for std::vec::Vec<u8> {}
 
         impl<'a, T: AcceptedTypes> ToValue<'a, T> for std::vec::Vec<u8> {
-            fn to_value(&'a self) -> vinculum_main::ffi::types::Value<'a, T> {
-                vinculum_main::ffi::types::Value::ByteVec(self.clone())
+            fn to_value(&'a self) -> vinculum_main::codec::Value<'a, T> {
+                vinculum_main::codec::Value::ByteVec(self.clone())
             }
         }
     };
@@ -391,8 +391,8 @@ macro_rules! accepted_ptr {
         impl AcceptedTypes for *const std::ffi::c_void {}
 
         impl<'a, T: AcceptedTypes> ToValue<'a, T> for *const std::ffi::c_void {
-            fn to_value(&'a self) -> vinculum_main::ffi::types::Value<'a, T> {
-                vinculum_main::ffi::types::Value::Ptr(*self)
+            fn to_value(&'a self) -> vinculum_main::codec::Value<'a, T> {
+                vinculum_main::codec::Value::Ptr(*self)
             }
         }
     };
@@ -404,8 +404,8 @@ macro_rules! accepted_mut_ptr {
         impl AcceptedTypes for *mut std::ffi::c_void {}
 
         impl<'a, T: AcceptedTypes> ToValue<'a, T> for *mut std::ffi::c_void {
-            fn to_value(&'a self) -> vinculum_main::ffi::types::Value<'a, T> {
-                vinculum_main::ffi::types::Value::MutPtr(*self)
+            fn to_value(&'a self) -> vinculum_main::codec::Value<'a, T> {
+                vinculum_main::codec::Value::MutPtr(*self)
             }
         }
     };
@@ -414,11 +414,11 @@ macro_rules! accepted_mut_ptr {
 #[macro_export]
 macro_rules! accepted_handle {
     () => {
-        impl AcceptedTypes for vinculum_main::ffi::types::Handle {}
+        impl AcceptedTypes for vinculum_main::codec::Handle {}
 
-        impl<'a, T: AcceptedTypes> ToValue<'a, T> for vinculum_main::ffi::types::Handle {
-            fn to_value(&'a self) -> vinculum_main::ffi::types::Value<'a, T> {
-                vinculum_main::ffi::types::Value::Handle(self.0)
+        impl<'a, T: AcceptedTypes> ToValue<'a, T> for vinculum_main::codec::Handle {
+            fn to_value(&'a self) -> vinculum_main::codec::Value<'a, T> {
+                vinculum_main::codec::Value::Handle(self.0)
             }
         }
     };
@@ -427,11 +427,11 @@ macro_rules! accepted_handle {
 #[macro_export]
 macro_rules! accepted_fn_ptr {
     () => {
-        impl AcceptedTypes for vinculum_main::ffi::types::FnPtr {}
+        impl AcceptedTypes for vinculum_main::codec::FnPtr {}
 
-        impl<'a, T: AcceptedTypes> ToValue<'a, T> for vinculum_main::ffi::types::FnPtr {
-            fn to_value(&'a self) -> vinculum_main::ffi::types::Value<'a, T> {
-                vinculum_main::ffi::types::Value::FnPtr(self.0)
+        impl<'a, T: AcceptedTypes> ToValue<'a, T> for vinculum_main::codec::FnPtr {
+            fn to_value(&'a self) -> vinculum_main::codec::Value<'a, T> {
+                vinculum_main::codec::Value::FnPtr(self.0)
             }
         }
     };
@@ -440,11 +440,11 @@ macro_rules! accepted_fn_ptr {
 #[macro_export]
 macro_rules! accepted_array {
     () => {
-        impl<'a, T: AcceptedTypes> AcceptedTypes for vinculum_main::ffi::types::Array<'a, T> {}
+        impl<'a, T: AcceptedTypes> AcceptedTypes for vinculum_main::codec::Array<'a, T> {}
 
-        impl<'a, T: AcceptedTypes> ToValue<'a, T> for vinculum_main::ffi::types::Array<'a, T> {
-            fn to_value(&'a self) -> vinculum_main::ffi::types::Value<'a, T> {
-                vinculum_main::ffi::types::Value::Array(self.0.clone())
+        impl<'a, T: AcceptedTypes> ToValue<'a, T> for vinculum_main::codec::Array<'a, T> {
+            fn to_value(&'a self) -> vinculum_main::codec::Value<'a, T> {
+                vinculum_main::codec::Value::Array(self.0.clone())
             }
         }
     };
@@ -453,11 +453,11 @@ macro_rules! accepted_array {
 #[macro_export]
 macro_rules! accepted_tuple {
     () => {
-        impl<'a, T: AcceptedTypes> AcceptedTypes for vinculum_main::ffi::types::Tuple<'a, T> {}
+        impl<'a, T: AcceptedTypes> AcceptedTypes for vinculum_main::codec::Tuple<'a, T> {}
 
-        impl<'a, T: AcceptedTypes> ToValue<'a, T> for vinculum_main::ffi::types::Tuple<'a, T> {
-            fn to_value(&'a self) -> vinculum_main::ffi::types::Value<'a, T> {
-                vinculum_main::ffi::types::Value::Tuple(self.0.clone())
+        impl<'a, T: AcceptedTypes> ToValue<'a, T> for vinculum_main::codec::Tuple<'a, T> {
+            fn to_value(&'a self) -> vinculum_main::codec::Value<'a, T> {
+                vinculum_main::codec::Value::Tuple(self.0.clone())
             }
         }
     };
