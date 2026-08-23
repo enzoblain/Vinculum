@@ -1,0 +1,8 @@
+[package]
+name = "vinculum-main"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+thiserror = "2.0.20"
+strum_macros = "0.28.0"
